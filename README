@@ -13,6 +13,8 @@ Docker Image usage:
 
 CREATE EXTENSION cstore_fdw;
 
+CREATE SERVER cstore_server FOREIGN DATA WRAPPER cstore_fdw;
+
 DDL (see trips.ddl)
 CREATE FOREIGN TABLE trips
 ( ....)
