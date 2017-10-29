@@ -1,10 +1,15 @@
+
+Example is based on http://tech.marksblogg.com/billion-nyc-taxi-rides-postgresql.html
+  (start with section "Citus Data's cstore_fdw Up and Running")
+
+
 Docker Image usage:
 1. build image
+   docker build . -t postgres10-cstore
 2. run it with /var/lib/postgresql/data mapped as volume
-3. adjust postgresql.conf (add line shared_preload_libraries = 'cstore_fdw')
+   docker run -it --rm --name postgres10 -v "$PWD/data":/var/lib/postgresql/data  postgres10-cstore
+3. adjust data/postgresql.conf (add line shared_preload_libraries = 'cstore_fdw')
 4. restart container
-
-see http://tech.marksblogg.com/billion-nyc-taxi-rides-postgresql.html
 
 CREATE EXTENSION cstore_fdw;
 
