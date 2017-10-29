@@ -1,0 +1,53 @@
+Docker Image usage:
+1. build image
+2. run it with /var/lib/postgresql/data mapped as volume
+3. adjust postgresql.conf (add line shared_preload_libraries = 'cstore_fdw')
+4. restart container
+
+see http://tech.marksblogg.com/billion-nyc-taxi-rides-postgresql.html
+
+CREATE EXTENSION cstore_fdw;
+
+DDL (see trips.ddl)
+CREATE FOREIGN TABLE trips
+( ....)
+SERVER cstore_server
+OPTIONS(compression 'pglz',
+        block_row_count '40000',
+        stripe_row_count '600000');
+
+curl -s https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2017-04.csv > data.csv
+Postprocessing:
+- delete 2nd line
+- dos2unix conversion
+
+Import data:
+COPY trips2 FROM '/var/lib/postgresql/data/yellow_tripdata_2017-04.csv' DELIMITER ',' CSV HEADER;
+
+Monitor storage: /var/lib/postgresql/data/cstore_fdw/
+
+EXPLAIN (COSTS ON) SELECT passenger_count,
+       EXTRACT(year from pickup_datetime) as year,
+       count(*)
+FROM trips2 -- or trips
+GROUP BY passenger_count, year;
+
+                                        QUERY PLAN
+-------------------------------------------------------------------------------------------
+ Finalize HashAggregate  (cost=55689.26..56189.26 rows=40000 width=18)
+   Group Key: passenger_count, (date_part('year'::text, pickup_datetime))
+   ->  Gather  (cost=46589.26..55089.26 rows=80000 width=18)
+         Workers Planned: 2
+         ->  Partial HashAggregate  (cost=45589.26..46089.26 rows=40000 width=18)
+               Group Key: passenger_count, date_part('year'::text, pickup_datetime)
+               ->  Parallel Seq Scan on trips2  (cost=0.00..41002.54 rows=611563 width=10)
+(7 rows)
+
+                                QUERY PLAN
+--------------------------------------------------------------------------
+ HashAggregate  (cost=46282.53..46282.54 rows=1 width=18)
+   Group Key: passenger_count, date_part('year'::text, pickup_datetime)
+   ->  Foreign Scan on trips  (cost=0.00..29182.55 rows=2279997 width=10)
+         CStore File: /var/lib/postgresql/data/cstore_fdw/16394/16450
+         CStore File Size: 47523481
+(5 rows)
