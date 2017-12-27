@@ -7,9 +7,12 @@ Docker Image usage:
 1. build image
    docker build . -t postgres10-cstore
 2. run it with /var/lib/postgresql/data mapped as volume
-   docker run -it --rm --name postgres10 -v "$PWD/data":/var/lib/postgresql/data  postgres10-cstore
+   docker run -it --rm --name postgres10 -v "$PWD/data/":/var/lib/postgresql/data  postgres10-cstore
 3. adjust data/postgresql.conf (add line shared_preload_libraries = 'cstore_fdw')
-4. restart container
+4. restart container: docker run -d -p 5432:5432 --name postgres10 -v "$PWD/data/":/var/lib/postgresql/data  postgres10-cstore
+5. connect: docker exec -it postgres10 /usr/bin/psql -U postgres
+
+
 
 CREATE EXTENSION cstore_fdw;
 
